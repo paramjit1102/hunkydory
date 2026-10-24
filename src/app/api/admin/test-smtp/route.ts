@@ -1,7 +1,45 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth-guard";
-import { verifySmtpConnection, sendEmail, parseEmailList, getAdminReceiverEmails } from "@/lib/email";
+import {
+  verifySmtpConnection,
+  sendEmail,
+  parseEmailList,
+  getAdminReceiverEmails,
+  getSmtpConfig,
+  getFromAddress
+} from "@/lib/email";
 import { SITE_NAME, CENTRE_LOCATION } from "@/lib/constants";
+
+export async function GET(request: Request) {
+  try {
+    const auth = await requireAuth(request, ["ADMIN", "SPECIALIST", "STAFF"]);
+    if (!auth.authorized) return auth.response!;
+
+    const config = getSmtpConfig();
+    const fromInfo = getFromAddress();
+    const adminReceivers = getAdminReceiverEmails();
+
+    const connectionResult = await verifySmtpConnection();
+
+    return NextResponse.json({
+      success: true,
+      envStatus: {
+        host: config.host || "(missing)",
+        port: config.port,
+        secure: config.secure,
+        userMasked: config.user ? `${config.user.slice(0, 3)}***@${config.user.split("@")[1] || "configured"}` : "(missing)",
+        isPassSet: Boolean(config.pass),
+        fromAddress: `${fromInfo.name} <${fromInfo.address}>`,
+        adminReceivers,
+        isConfigured: config.isConfigured,
+        missingKeys: config.missingKeys
+      },
+      connection: connectionResult
+    });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || "Failed to inspect SMTP" }, { status: 500 });
+  }
+}
 
 export async function POST(request: Request) {
   try {

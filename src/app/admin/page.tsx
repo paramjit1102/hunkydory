@@ -37,7 +37,30 @@ export default function AdminDashboardPage() {
   const [showSmtpModal, setShowSmtpModal] = useState(false);
   const [smtpTestEmail, setSmtpTestEmail] = useState("");
   const [smtpLoading, setSmtpLoading] = useState(false);
+  const [smtpCheckingEnv, setSmtpCheckingEnv] = useState(false);
+  const [smtpEnvStatus, setSmtpEnvStatus] = useState<any>(null);
   const [smtpResult, setSmtpResult] = useState<{ success?: boolean; message?: string; error?: string } | null>(null);
+
+  const fetchSmtpEnvStatus = async () => {
+    setSmtpCheckingEnv(true);
+    try {
+      const res = await fetch("/api/admin/test-smtp");
+      if (res.ok) {
+        const data = await res.json();
+        setSmtpEnvStatus(data.envStatus);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setSmtpCheckingEnv(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showSmtpModal) {
+      fetchSmtpEnvStatus();
+    }
+  }, [showSmtpModal]);
 
   const handleTestSmtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +75,7 @@ export default function AdminDashboardPage() {
       const data = await res.json();
       if (res.ok) {
         setSmtpResult({ success: true, message: data.message });
+        fetchSmtpEnvStatus();
       } else {
         setSmtpResult({ success: false, error: data.error || "Failed to verify SMTP connection" });
       }
@@ -423,6 +447,63 @@ export default function AdminDashboardPage() {
                 <p className="text-xs text-slate-500">Verify outgoing email delivery and connection</p>
               </div>
             </div>
+
+            {/* Live Environment Status Indicator */}
+            {smtpCheckingEnv && !smtpEnvStatus && (
+              <div className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-500 mb-4">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>Checking Vercel server environment variables...</span>
+              </div>
+            )}
+
+            {smtpEnvStatus && (
+              <div className="mb-4 p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px]">
+                    Server Variables Status
+                  </span>
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      smtpEnvStatus.isConfigured
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-amber-100 text-amber-800"
+                    }`}
+                  >
+                    {smtpEnvStatus.isConfigured ? "✓ All Keys Detected" : "⚠️ Incomplete in Vercel"}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-[11px] text-slate-600">
+                  <div>
+                    <span className="text-slate-400">Host:</span>{" "}
+                    <strong className="text-slate-800 font-mono text-[10px]">{smtpEnvStatus.host}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">Port:</span>{" "}
+                    <strong className="text-slate-800">{smtpEnvStatus.port}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">User:</span>{" "}
+                    <strong className="text-slate-800 font-mono text-[10px]">{smtpEnvStatus.userMasked}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">Password:</span>{" "}
+                    <strong className={smtpEnvStatus.isPassSet ? "text-emerald-700" : "text-rose-600 font-bold"}>
+                      {smtpEnvStatus.isPassSet ? "Configured ✓" : "Missing ✕"}
+                    </strong>
+                  </div>
+                </div>
+
+                {!smtpEnvStatus.isConfigured && (
+                  <div className="mt-2.5 pt-2 border-t border-slate-200 text-[11px] text-amber-800 bg-amber-50/80 p-2 rounded-lg">
+                    <strong>Missing on Vercel:</strong> {smtpEnvStatus.missingKeys?.join(", ")}.
+                    <div className="mt-0.5 text-[10px] text-slate-500">
+                      Add them in Vercel Project Settings &gt; Environment Variables, then Redeploy.
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <form onSubmit={handleTestSmtp} className="space-y-4">
               <div>

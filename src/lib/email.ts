@@ -2,12 +2,40 @@ import nodemailer from "nodemailer";
 import { CENTRE_EMAIL, CENTRE_LOCATION, CENTRE_PHONE, SITE_NAME, SITE_TAGLINE } from "@/lib/constants";
 import { Enquiry, Appointment } from "@/lib/types";
 
-// SMTP Configuration from Environment Variables
-const SMTP_HOST = process.env.SMTP_HOST;
-const SMTP_PORT = parseInt(process.env.SMTP_PORT || "587", 10);
-const SMTP_SECURE = process.env.SMTP_SECURE === "true" || SMTP_PORT === 465;
-const SMTP_USER = process.env.SMTP_USER;
-const SMTP_PASS = process.env.SMTP_PASS;
+/**
+ * Clean and unquote environment variable string safely
+ */
+export function cleanEnvString(val: string | undefined | null): string {
+  if (!val) return "";
+  return val.replace(/\\/g, "").replace(/^["']|["']$/g, "").trim();
+}
+
+/**
+ * Returns dynamic SMTP configuration parsed safely from process.env
+ */
+export function getSmtpConfig() {
+  const host = cleanEnvString(process.env.SMTP_HOST);
+  const rawPort = cleanEnvString(process.env.SMTP_PORT || "587");
+  const port = parseInt(rawPort, 10) || 587;
+  const secure = cleanEnvString(process.env.SMTP_SECURE) === "true" || port === 465;
+  const user = cleanEnvString(process.env.SMTP_USER);
+  const pass = cleanEnvString(process.env.SMTP_PASS);
+
+  const missingKeys: string[] = [];
+  if (!host) missingKeys.push("SMTP_HOST");
+  if (!user) missingKeys.push("SMTP_USER");
+  if (!pass) missingKeys.push("SMTP_PASS");
+
+  return {
+    host,
+    port,
+    secure,
+    user,
+    pass,
+    isConfigured: missingKeys.length === 0,
+    missingKeys
+  };
+}
 
 /**
  * Safely parses and sanitizes the sender (FROM) address.
@@ -15,16 +43,13 @@ const SMTP_PASS = process.env.SMTP_PASS;
  * eliminating the "Mail command failed: 451 4.0.0 Invalid from" error.
  */
 export function getFromAddress(): { name: string; address: string } {
-  const rawFrom = process.env.SMTP_FROM || "";
-  const rawUser = process.env.SMTP_USER || "";
-
-  // Strip backslashes, escaped quotes, and outer wrapping quotes
-  const unescaped = rawFrom.replace(/\\/g, "").replace(/^["']|["']$/g, "").trim();
+  const rawFrom = cleanEnvString(process.env.SMTP_FROM);
+  const rawUser = cleanEnvString(process.env.SMTP_USER);
 
   let name = `${SITE_NAME} Mohali`;
   let address = "";
 
-  const match = unescaped.match(/<([^>]+)>/) || unescaped.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+  const match = rawFrom.match(/<([^>]+)>/) || rawFrom.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
   if (match) {
     address = match[1].trim();
   }
@@ -38,8 +63,8 @@ export function getFromAddress(): { name: string; address: string } {
     }
   }
 
-  if (unescaped.includes("<")) {
-    const namePart = unescaped.split("<")[0].replace(/["']/g, "").trim();
+  if (rawFrom.includes("<")) {
+    const namePart = rawFrom.split("<")[0].replace(/["']/g, "").trim();
     if (namePart) {
       name = namePart;
     }
@@ -56,7 +81,7 @@ export function parseEmailList(input?: string | string[] | null): string[] {
   if (!input) return [];
   const rawList = Array.isArray(input) ? input : input.split(/[,;]+/);
   const emails = rawList
-    .map((e) => e.trim())
+    .map((e) => cleanEnvString(e))
     .filter((e) => e.length > 0 && e.includes("@"));
 
   // Return unique emails
@@ -73,9 +98,9 @@ export function parseEmailList(input?: string | string[] | null): string[] {
  */
 export function getAdminReceiverEmails(): string[] {
   const envVal =
-    process.env.SMTP_ADMIN_EMAIL ||
-    process.env.SMTP_RECEIVERS ||
-    process.env.ADMIN_EMAIL ||
+    cleanEnvString(process.env.SMTP_ADMIN_EMAIL) ||
+    cleanEnvString(process.env.SMTP_RECEIVERS) ||
+    cleanEnvString(process.env.ADMIN_EMAIL) ||
     CENTRE_EMAIL;
 
   const parsed = parseEmailList(envVal);
@@ -87,18 +112,22 @@ export function getAdminReceiverEmails(): string[] {
  * Returns null if SMTP is not configured.
  */
 export function getMailTransporter() {
-  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
+  const config = getSmtpConfig();
+  if (!config.isConfigured) {
     return null;
   }
 
   return nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: SMTP_PORT,
-    secure: SMTP_SECURE,
+    host: config.host,
+    port: config.port,
+    secure: config.secure,
     auth: {
-      user: SMTP_USER,
-      pass: SMTP_PASS
+      user: config.user,
+      pass: config.pass
     },
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 20000,
     tls: {
       rejectUnauthorized: process.env.NODE_ENV === "production"
     }
@@ -108,20 +137,46 @@ export function getMailTransporter() {
 /**
  * Verifies if the SMTP transporter connects successfully.
  */
-export async function verifySmtpConnection(): Promise<{ success: boolean; message: string }> {
+export async function verifySmtpConnection(): Promise<{ success: boolean; message: string; details?: Record<string, any> }> {
+  const config = getSmtpConfig();
+  if (!config.isConfigured) {
+    return {
+      success: false,
+      message: `SMTP is not configured in Vercel environment variables. Missing: ${config.missingKeys.join(", ")}`,
+      details: {
+        hostDetected: Boolean(config.host),
+        userDetected: Boolean(config.user),
+        passDetected: Boolean(config.pass),
+        port: config.port
+      }
+    };
+  }
+
   const transporter = getMailTransporter();
   if (!transporter) {
     return {
       success: false,
-      message: "SMTP is not configured in environment variables (requires SMTP_HOST, SMTP_USER, SMTP_PASS)."
+      message: "Failed to initialize SMTP transporter."
     };
   }
 
   try {
     await transporter.verify();
-    return { success: true, message: `Connected successfully to SMTP server at ${SMTP_HOST}:${SMTP_PORT}` };
+    return {
+      success: true,
+      message: `Connected successfully to SMTP server at ${config.host}:${config.port}`
+    };
   } catch (error: any) {
-    return { success: false, message: error?.message || "Failed to verify SMTP connection" };
+    return {
+      success: false,
+      message: error?.message || "Failed to verify SMTP connection",
+      details: {
+        host: config.host,
+        port: config.port,
+        code: error?.code,
+        command: error?.command
+      }
+    };
   }
 }
 
@@ -151,15 +206,20 @@ export async function sendEmail(options: SendEmailOptions): Promise<{ success: b
   const transporter = getMailTransporter();
 
   if (!transporter) {
-    console.log("--------------------------------------------------");
-    console.log("📨 [SMTP MOCK / SIMULATION]");
-    console.log(`To (${recipients.length} receiver${recipients.length > 1 ? "s" : ""}): ${recipients.join(", ")}`);
-    if (ccRecipients.length > 0) console.log(`Cc: ${ccRecipients.join(", ")}`);
-    if (bccRecipients.length > 0) console.log(`Bcc: ${bccRecipients.join(", ")}`);
-    console.log(`Subject: ${options.subject}`);
-    console.log("Notice: Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS in .env to send real emails.");
-    console.log("--------------------------------------------------");
-    return { success: true, simulated: true, messageId: `mock-${Date.now()}`, recipients };
+    const config = getSmtpConfig();
+    console.warn("--------------------------------------------------");
+    console.warn("⚠️ [SMTP NOT CONFIGURED ON VERCEL / SERVER]");
+    console.warn(`Missing Environment Variables: ${config.missingKeys.join(", ")}`);
+    console.warn(`Simulated To: ${recipients.join(", ")} | Subject: ${options.subject}`);
+    console.warn("Action Required: Add SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS in Vercel Project Settings -> Environment Variables, then Redeploy.");
+    console.warn("--------------------------------------------------");
+    return {
+      success: false,
+      simulated: true,
+      error: `SMTP not configured on server (Missing: ${config.missingKeys.join(", ")}). Configure in Vercel Settings.`,
+      messageId: `mock-${Date.now()}`,
+      recipients
+    };
   }
 
   const fromInfo = getFromAddress();

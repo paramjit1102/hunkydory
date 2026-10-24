@@ -47,16 +47,27 @@ export async function POST(request: Request) {
       notes: notes ? String(notes).trim() : undefined
     });
 
-    // Send emails via SMTP in background without delaying user response
-    sendAppointmentNotificationEmail(newAppointment).catch((err) => {
-      console.error("[Email Notification Failed]", err);
-    });
+    // In Vercel Serverless environment, background promises without await are frozen/terminated.
+    // We await the email notification so the socket completes before the lambda returns.
+    let emailStatus = { delivered: false, error: undefined as string | undefined };
+    try {
+      const emailOutcomes = await sendAppointmentNotificationEmail(newAppointment);
+      const allSucceeded = emailOutcomes.every(
+        (res) => res.status === "fulfilled" && res.value.success
+      );
+      emailStatus.delivered = allSucceeded;
+      console.log(`[Appointment Email Outcome] All sent successfully: ${allSucceeded}`);
+    } catch (emailErr: any) {
+      console.error("[Appointment Email Notification Error]:", emailErr?.message || emailErr);
+      emailStatus = { delivered: false, error: emailErr?.message || "Failed to transmit email notification" };
+    }
 
     return NextResponse.json(
       {
         success: true,
         message: "Your assessment appointment request has been scheduled successfully! Our team will reach out to confirm.",
-        appointment: newAppointment
+        appointment: newAppointment,
+        emailStatus
       },
       { status: 201 }
     );

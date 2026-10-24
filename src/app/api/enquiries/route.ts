@@ -46,16 +46,27 @@ export async function POST(request: Request) {
       message: message ? String(message).trim() : "Enquiry regarding program placement and support."
     });
 
-    // Send emails via SMTP in background without delaying user response
-    sendEnquiryNotificationEmail(newEnquiry).catch((err) => {
-      console.error("[Email Notification Failed]", err);
-    });
+    // In Vercel Serverless environment, background promises without await are frozen/terminated.
+    // We await the email notification so the socket completes before the lambda returns.
+    let emailStatus = { delivered: false, error: undefined as string | undefined };
+    try {
+      const emailOutcomes = await sendEnquiryNotificationEmail(newEnquiry);
+      const allSucceeded = emailOutcomes.every(
+        (res) => res.status === "fulfilled" && res.value.success
+      );
+      emailStatus.delivered = allSucceeded;
+      console.log(`[Enquiry Email Outcome] All sent successfully: ${allSucceeded}`);
+    } catch (emailErr: any) {
+      console.error("[Enquiry Email Notification Error]:", emailErr?.message || emailErr);
+      emailStatus = { delivered: false, error: emailErr?.message || "Failed to transmit email notification" };
+    }
 
     return NextResponse.json(
       {
         success: true,
         message: "Thank you! Your enquiry has been received. Our care coordinator will contact you shortly.",
-        enquiry: newEnquiry
+        enquiry: newEnquiry,
+        emailStatus
       },
       { status: 201 }
     );
