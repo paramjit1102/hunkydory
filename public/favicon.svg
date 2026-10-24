@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Master Heart Silhouette -->
+    <clipPath id="heart-silhouette">
+      <path d="M 256,442
+               C 244,430 84,295 84,170
+               C 84,98 140,44 212,44
+               C 238,44 256,58 256,76
+               C 256,58 274,44 300,44
+               C 372,44 428,98 428,170
+               C 428,295 268,430 256,442 Z" />
+    </clipPath>
+
+    <!-- Circular Badge Clip -->
+    <clipPath id="circle-badge">
+      <circle cx="256" cy="256" r="236" />
+    </clipPath>
+  </defs>
+
+  <!-- Circular Badge Background -->
+  <circle cx="256" cy="256" r="248" fill="#FFFDF9" stroke="#FBBF24" stroke-width="14" />
+
+  <!-- Heart Group Centered inside Badge -->
+  <g transform="translate(256, 262) scale(0.85) translate(-256, -256)">
+    <!-- Clipped 4 Puzzle Pieces -->
+    <g clip-path="url(#heart-silhouette)">
+      <!-- 1. Top-Left: Pink (#E83D84) -->
+      <!-- Has male tab into Yellow on right, and female slot from Blue on bottom -->
+      <path d="M 0,0 
+               H 256 
+               V 135
+               C 285,135 285,195 256,195
+               V 256
+               H 220
+               C 220,225 160,225 160,256
+               H 0 Z" 
+            fill="#E83D84" 
+            stroke="#FFFFFF" 
+            stroke-width="10" 
+            stroke-linejoin="round" />
+
+      <!-- 2. Top-Right: Golden Yellow (#FBBF24) -->
+      <!-- Receives tab from Pink on left, has female slot from Green on bottom -->
+      <path d="M 256,0 
+               H 512 
+               V 256
+               H 352
+               C 352,225 292,225 292,256
+               H 256
+               V 195
+               C 285,195 285,135 256,135
+               V 0 Z" 
+            fill="#FBBF24" 
+            stroke="#FFFFFF" 
+            stroke-width="10" 
+            stroke-linejoin="round" />
+
+      <!-- 3. Bottom-Left: Ocean Sky Blue (#0EA5E9) -->
+      <!-- Has male tab into Pink on top, and male tab into Green on right -->
+      <path d="M 0,256 
+               H 160
+               C 160,225 220,225 220,256
+               H 256
+               V 305
+               C 285,305 285,365 256,365
+               V 512
+               H 0 Z" 
+            fill="#0EA5E9" 
+            stroke="#FFFFFF" 
+            stroke-width="10" 
+            stroke-linejoin="round" />
+
+      <!-- 4. Bottom-Right: Leaf Green (#22C55E) -->
+      <!-- Has male tab into Yellow on top, receives tab from Blue on left -->
+      <path d="M 256,256 
+               H 292
+               C 292,225 352,225 352,256
+               H 512
+               V 512
+               H 256
+               V 365
+               C 285,365 285,305 256,305
+               V 256 Z" 
+            fill="#22C55E" 
+            stroke="#FFFFFF" 
+            stroke-width="10" 
+            stroke-linejoin="round" />
+    </g>
+
+    <!-- Crisp White Outer Heart Border -->
+    <path d="M 256,442
+             C 244,430 84,295 84,170
+             C 84,98 140,44 212,44
+             C 238,44 256,58 256,76
+             C 256,58 274,44 300,44
+             C 372,44 428,98 428,170
+             C 428,295 268,430 256,442 Z"
+          fill="none" 
+          stroke="#FFFFFF" 
+          stroke-width="10" 
+          stroke-linejoin="round" />
+  </g>
+</svg>

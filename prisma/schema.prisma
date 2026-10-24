@@ -1,0 +1,150 @@
+// Prisma schema for Hunky Dory Educational Platform
+// Configured for MySQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  SPECIALIST
+  STAFF
+}
+
+enum EnquiryStatus {
+  NEW
+  IN_REVIEW
+  CONTACTED
+  ENROLLED
+  CLOSED
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum ProgramStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  role          Role      @default(STAFF)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Student {
+  id              String           @id @default(cuid())
+  studentName     String           @map("student_name")
+  dateOfBirth     DateTime?        @map("date_of_birth")
+  age             Int
+  gender          String
+  parentName      String           @map("parent_name")
+  phone           String
+  email           String
+  address         String?          @db.Text
+  learningNeeds   String           @map("learning_needs") @db.Text
+  notes           String?          @db.Text
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  assessments     Assessment[]
+  progressReports ProgressReport[]
+
+  @@map("students")
+}
+
+model Program {
+  id          String        @id @default(cuid())
+  name        String
+  slug        String        @unique
+  description String        @db.Text
+  image       String?
+  status      ProgramStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  @@map("programs")
+}
+
+model Enquiry {
+  id         String        @id @default(cuid())
+  parentName String        @map("parent_name")
+  childName  String        @map("child_name")
+  childAge   Int           @map("child_age")
+  phone      String
+  email      String
+  program    String
+  message    String        @db.Text
+  status     EnquiryStatus @default(NEW)
+  createdAt  DateTime      @default(now()) @map("created_at")
+
+  @@map("enquiries")
+}
+
+model Appointment {
+  id              String            @id @default(cuid())
+  parentName      String            @map("parent_name")
+  childName       String            @map("child_name")
+  phone           String
+  email           String
+  appointmentDate DateTime          @map("appointment_date")
+  appointmentTime String            @map("appointment_time")
+  program         String
+  notes           String?           @db.Text
+  status          AppointmentStatus @default(PENDING)
+  createdAt       DateTime          @default(now()) @map("created_at")
+
+  @@map("appointments")
+}
+
+model Assessment {
+  id               String   @id @default(cuid())
+  studentId        String   @map("student_id")
+  assessmentDate   DateTime @default(now()) @map("assessment_date")
+  academicNotes    String?  @map("academic_notes") @db.Text
+  communicationNotes String? @map("communication_notes") @db.Text
+  behaviourNotes   String?  @map("behaviour_notes") @db.Text
+  sensoryNotes     String?  @map("sensory_notes") @db.Text
+  socialNotes      String?  @map("social_notes") @db.Text
+  dailyLivingNotes String?  @map("daily_living_notes") @db.Text
+  recommendations  String?  @db.Text
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  student          Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@map("assessments")
+}
+
+model ProgressReport {
+  id                  String   @id @default(cuid())
+  studentId           String   @map("student_id")
+  reportDate          DateTime @default(now()) @map("report_date")
+  goals               String   @db.Text
+  progress            String   @db.Text
+  strengths           String   @db.Text
+  areasForImprovement String   @map("areas_for_improvement") @db.Text
+  recommendations     String   @db.Text
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  student             Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@map("progress_reports")
+}
