@@ -11,11 +11,7 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") as AppointmentStatus | null;
-    let appointments = store.getAppointments();
-
-    if (status) {
-      appointments = appointments.filter((a) => a.status === status);
-    }
+    const appointments = await store.getAppointments(status);
 
     return NextResponse.json({ success: true, appointments });
   } catch (err: any) {
@@ -36,7 +32,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const newAppointment = store.createAppointment({
+    const newAppointment = await store.createAppointment({
       parentName: String(parentName).trim(),
       childName: String(childName).trim(),
       phone: String(phone).trim(),
@@ -88,7 +84,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Appointment ID and status are required." }, { status: 400 });
     }
 
-    const updated = store.updateAppointmentStatus(id, status as AppointmentStatus);
+    const updated = await store.updateAppointmentStatus(id, status as AppointmentStatus);
     if (!updated) {
       return NextResponse.json({ error: "Appointment not found" }, { status: 404 });
     }

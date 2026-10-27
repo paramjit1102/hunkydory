@@ -10,9 +10,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get("studentId");
 
-    const reports = studentId
-      ? store.getProgressReportsByStudentId(studentId)
-      : store.getProgressReports();
+    const reports = await store.getProgressReports(studentId);
 
     return NextResponse.json({ success: true, progressReports: reports });
   } catch (err: any) {
@@ -43,7 +41,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const report = store.createProgressReport({
+    const report = await store.createProgressReport({
       studentId,
       reportDate: reportDate || new Date().toISOString().split("T")[0],
       goals: String(goals).trim(),

@@ -17,7 +17,7 @@ export async function GET() {
       return NextResponse.json({ authenticated: false, user: null }, { status: 401 });
     }
 
-    const user = store.getUserById(payload.userId);
+    const user = await store.getUserById(payload.userId);
     if (!user) {
       return NextResponse.json({ authenticated: false, user: null }, { status: 401 });
     }

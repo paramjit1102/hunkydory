@@ -10,7 +10,8 @@ export async function GET(request: Request) {
     const auth = await requireAuth(request, ["ADMIN"]);
     if (!auth.authorized) return auth.response!;
 
-    const users = store.getUsers().map((u) => ({
+    const rawUsers = await store.getUsers();
+    const users = rawUsers.map((u) => ({
       id: u.id,
       name: u.name,
       email: u.email,
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const existing = store.getUserByEmail(email);
+    const existing = await store.getUserByEmail(email);
     if (existing) {
       return NextResponse.json(
         { error: "A user with this email already exists." },
@@ -58,7 +59,7 @@ export async function POST(request: Request) {
     }
 
     const passwordHash = await hashPassword(password);
-    const newUser = store.createUser({
+    const newUser = await store.createUser({
       name: String(name).trim(),
       email: String(email).trim().toLowerCase(),
       passwordHash,

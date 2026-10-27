@@ -69,25 +69,25 @@ export function getSessionCookieName(): string {
 
 export async function authenticateUser(email: string, password: string): Promise<User | null> {
   const normalizedEmail = email.trim().toLowerCase();
-  let user = store.getUserByEmail(normalizedEmail);
+  let user = await store.getUserByEmail(normalizedEmail);
 
   if (!user) {
     if (normalizedEmail === "specialist@hunkydory.edu") {
-      user = store.createUser({
+      user = await store.createUser({
         name: "Priya Sen (Specialist)",
         email: "specialist@hunkydory.edu",
         passwordHash: "$2a$10$9K2z/7Qvh3vE2M0Kx0bY2.n4aD8lV5L7d4J1mF6yA0x8w6P1u4z8S",
         role: "SPECIALIST"
       });
     } else if (normalizedEmail === "staff@hunkydory.edu") {
-      user = store.createUser({
+      user = await store.createUser({
         name: "Rohan Verma (Staff)",
         email: "staff@hunkydory.edu",
         passwordHash: "$2a$10$9K2z/7Qvh3vE2M0Kx0bY2.n4aD8lV5L7d4J1mF6yA0x8w6P1u4z8S",
         role: "STAFF"
       });
     } else if (normalizedEmail === "admin@hunkydory.edu") {
-      user = store.createUser({
+      user = await store.createUser({
         name: "Dr. Sarah Mitchell (Director)",
         email: "admin@hunkydory.edu",
         passwordHash: "$2a$10$9K2z/7Qvh3vE2M0Kx0bY2.n4aD8lV5L7d4J1mF6yA0x8w6P1u4z8S",

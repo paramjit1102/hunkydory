@@ -11,11 +11,7 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") as EnquiryStatus | null;
-    let enquiries = store.getEnquiries();
-
-    if (status) {
-      enquiries = enquiries.filter((e) => e.status === status);
-    }
+    const enquiries = await store.getEnquiries(status);
 
     return NextResponse.json({ success: true, enquiries });
   } catch (err: any) {
@@ -36,7 +32,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const newEnquiry = store.createEnquiry({
+    const newEnquiry = await store.createEnquiry({
       parentName: String(parentName).trim(),
       childName: String(childName).trim(),
       childAge: Number(childAge) || 5,
@@ -87,7 +83,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Enquiry ID and updated status are required." }, { status: 400 });
     }
 
-    const updated = store.updateEnquiryStatus(id, status as EnquiryStatus);
+    const updated = await store.updateEnquiryStatus(id, status as EnquiryStatus);
     if (!updated) {
       return NextResponse.json({ error: "Enquiry not found" }, { status: 404 });
     }

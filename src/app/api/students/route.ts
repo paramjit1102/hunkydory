@@ -9,17 +9,7 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search")?.toLowerCase();
-    let students = store.getStudents();
-
-    if (search) {
-      students = students.filter(
-        (s) =>
-          s.studentName.toLowerCase().includes(search) ||
-          s.parentName.toLowerCase().includes(search) ||
-          s.learningNeeds.toLowerCase().includes(search) ||
-          s.email.toLowerCase().includes(search)
-      );
-    }
+    const students = await store.getStudents(search);
 
     return NextResponse.json({ success: true, students });
   } catch (err: any) {
@@ -53,7 +43,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const student = store.createStudent({
+    const student = await store.createStudent({
       studentName: String(studentName).trim(),
       dateOfBirth: dateOfBirth ? String(dateOfBirth) : undefined,
       age: Number(age) || 6,
@@ -85,7 +75,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Student ID is required." }, { status: 400 });
     }
 
-    const deleted = store.deleteStudent(id);
+    const deleted = await store.deleteStudent(id);
     if (!deleted) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }

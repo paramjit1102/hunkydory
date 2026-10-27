@@ -2,7 +2,7 @@
 
 > **“Every Child Can Learn. Every Child Can Shine.”**
 
-Hunky Dory is a modern, warm, child-centred educational and support platform designed specifically for **children with diverse learning, developmental, and educational needs**. Built with Next.js (App Router), TypeScript, Tailwind CSS, Prisma ORM, and MySQL.
+Hunky Dory is a modern, warm, child-centred educational and support platform designed specifically for **children with diverse learning, developmental, and educational needs**. Built with Next.js (App Router), TypeScript, Tailwind CSS, Mongoose ODM, and MongoDB.
 
 ---
 
@@ -50,26 +50,16 @@ We celebrate each child's individual strengths, abilities, and neurodivergent pr
 
 ---
 
-## 🗄️ MySQL Database Schema
+## 🗄️ MongoDB Database Architecture (Mongoose ODM)
 
-The database includes the following tables with foreign keys and indexes:
-1. `users` (id, name, email, password_hash, role, created_at, updated_at)
-2. `students` (id, student_name, date_of_birth, age, gender, parent_name, phone, email, address, learning_needs, notes, created_at, updated_at)
-3. `programs` (id, name, slug, description, image, status, created_at, updated_at)
-4. `enquiries` (id, parent_name, child_name, child_age, phone, email, program, message, status, created_at)
-5. `appointments` (id, parent_name, child_name, phone, email, appointment_date, appointment_time, program, notes, status, created_at)
-6. `assessments` (id, student_id, assessment_date, academic_notes, communication_notes, behaviour_notes, sensory_notes, social_notes, daily_living_notes, recommendations, created_at)
-7. `progress_reports` (id, student_id, report_date, goals, progress, strengths, areas_for_improvement, recommendations, created_at)
-
-### Direct MySQL Script
-You can find the direct SQL creation file in the root directory:
-```bash
-hunky_dory_schema.sql
-```
-Import this file into any MySQL server (via phpMyAdmin, MySQL Workbench, or CLI):
-```bash
-mysql -u root -p < hunky_dory_schema.sql
-```
+The database models are structured under `src/models/` with TypeScript types and Mongoose schemas:
+1. **User** (`users`): System users (Admin, Specialist, Staff) with hashed passwords and RBAC.
+2. **Student** (`students`): Student profiles, parent info, and individualised learning needs.
+3. **Program** (`programs`): Curricular and therapy programs, badges, and features.
+4. **Enquiry** (`enquiries`): Inquiries from parents with workflow status tracking.
+5. **Appointment** (`appointments`): Clinical and assessment appointment schedules.
+6. **Assessment** (`assessments`): Clinical observations across academic, sensory, communication, and behavioural domains.
+7. **ProgressReport** (`progress_reports`): Milestone evaluations, goals, and recommendations.
 
 ---
 
@@ -78,7 +68,7 @@ mysql -u root -p < hunky_dory_schema.sql
 ### 1. Prerequisites
 - **Node.js** (v18.17+ or v20+)
 - **npm** or **pnpm**
-- **MySQL** (optional; the app contains an intelligent in-memory fallback layer so you can run and demo all features instantly even without a running MySQL server)
+- **MongoDB** (MongoDB Atlas connection string or local MongoDB on `mongodb://127.0.0.1:27017/hunky_dory_db`)
 
 ### 2. Installation
 ```bash
@@ -91,18 +81,19 @@ Copy `.env.example` to `.env`:
 ```bash
 cp .env.example .env
 ```
-Update `DATABASE_URL` with your MySQL credentials:
+Configure your MongoDB connection URI in `.env`:
 ```env
-DATABASE_URL="mysql://root:password@localhost:3306/hunky_dory_db"
+MONGODB_URI="mongodb+srv://USER:PASSWORD@cluster0.mongodb.net/?retryWrites=true&w=majority"
+DATABASE_URL="mongodb+srv://USER:PASSWORD@cluster0.mongodb.net/?retryWrites=true&w=majority"
 JWT_SECRET="hunky_dory_super_secret_jwt_key_2026_diverse_learners"
 NODE_ENV="development"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
-### 4. Prisma Sync (Optional with MySQL)
+### 4. Database Seeding (Optional)
+To initialize default administrator accounts and demo data:
 ```bash
-npx prisma generate
-npx prisma db push
+npm run db:seed
 ```
 
 ### 5. Run Development Server

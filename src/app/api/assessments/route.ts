@@ -10,9 +10,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get("studentId");
 
-    const assessments = studentId
-      ? store.getAssessmentsByStudentId(studentId)
-      : store.getAssessments();
+    const assessments = await store.getAssessments(studentId);
 
     return NextResponse.json({ success: true, assessments });
   } catch (err: any) {
@@ -42,7 +40,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Student ID is required." }, { status: 400 });
     }
 
-    const assessment = store.createAssessment({
+    const assessment = await store.createAssessment({
       studentId,
       assessmentDate: assessmentDate || new Date().toISOString().split("T")[0],
       academicNotes: academicNotes ? String(academicNotes).trim() : undefined,

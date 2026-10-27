@@ -7,7 +7,7 @@ export async function GET(request: Request) {
     const auth = await requireAuth(request, ["ADMIN", "SPECIALIST", "STAFF"]);
     if (!auth.authorized) return auth.response!;
 
-    const stats = store.getDashboardStats();
+    const stats = await store.getDashboardStats();
     return NextResponse.json({ success: true, stats, user: auth.user });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Failed to fetch stats" }, { status: 500 });
