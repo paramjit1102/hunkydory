@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   GraduationCap,
@@ -11,13 +11,23 @@ import {
   SunMedium,
   BookOpenCheck,
   Compass,
+  Puzzle,
   ArrowRight,
   CheckCircle2,
   CalendarCheck,
   X,
-  Puzzle
+  Activity,
+  Users,
+  Palette,
+  Music,
+  Trophy,
+  Zap,
+  Dumbbell,
+  Smile,
+  Heart
 } from "lucide-react";
 import { CORE_PROGRAMS } from "@/lib/constants";
+import { Program } from "@/lib/types";
 
 // Icon mapping
 const programIcons: Record<string, React.ReactNode> = {
@@ -29,16 +39,63 @@ const programIcons: Record<string, React.ReactNode> = {
   SunMedium: <SunMedium className="w-6 h-6" />,
   BookOpenCheck: <BookOpenCheck className="w-6 h-6" />,
   Compass: <Compass className="w-6 h-6" />,
-  Puzzle: <Puzzle className="w-6 h-6" />
+  Puzzle: <Puzzle className="w-6 h-6" />,
+  Activity: <Activity className="w-6 h-6" />,
+  Users: <Users className="w-6 h-6" />,
+  Palette: <Palette className="w-6 h-6" />,
+  Music: <Music className="w-6 h-6" />,
+  Trophy: <Trophy className="w-6 h-6" />,
+  Zap: <Zap className="w-6 h-6" />,
+  Dumbbell: <Dumbbell className="w-6 h-6" />,
+  Smile: <Smile className="w-6 h-6" />,
+  Heart: <Heart className="w-6 h-6" />
 };
 
 export default function ProgramsSection({ children }: { children?: React.ReactNode } = {}) {
-  const [selectedProgram, setSelectedProgram] = useState<(typeof CORE_PROGRAMS)[0] | null>(null);
+  // Convert CORE_PROGRAMS into compatible list as default initial state
+  const defaultList: any[] = CORE_PROGRAMS.map((p) => ({
+    id: p.id,
+    name: p.name,
+    slug: p.slug,
+    description: p.description,
+    shortDesc: p.shortDesc,
+    category: p.tag,
+    badge: p.ageRange || p.tag,
+    iconName: p.icon,
+    badgeColor: p.badgeColor || "bg-[#F59E0B]",
+    features: p.features
+  }));
+
+  const [programs, setPrograms] = useState<any[]>(defaultList);
+  const [selectedProgram, setSelectedProgram] = useState<any | null>(null);
+
+  useEffect(() => {
+    fetch("/api/programs?status=ACTIVE")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.programs && data.programs.length > 0) {
+          setPrograms(
+            data.programs.map((p: Program) => ({
+              id: p.id,
+              name: p.name,
+              slug: p.slug,
+              description: p.description,
+              shortDesc: p.description.length > 110 ? p.description.slice(0, 110) + "..." : p.description,
+              category: p.category || "Developmental",
+              badge: p.badge || "All Ages",
+              iconName: p.iconName || "Sparkles",
+              badgeColor: "bg-[#F59E0B]",
+              features: p.features || []
+            }))
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <section id="programs" className="py-16 md:py-24 bg-white relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto space-y-4 mb-14">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-100 text-emerald-900 text-xs font-black uppercase tracking-wider border border-emerald-300">
@@ -53,10 +110,10 @@ export default function ProgramsSection({ children }: { children?: React.ReactNo
           </p>
         </div>
 
-        {/* 8 Program Cards Grid */}
+        {/* Program Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {CORE_PROGRAMS.map((program) => {
-            const icon = programIcons[program.icon] || <Sparkles className="w-6 h-6" />;
+          {programs.map((program) => {
+            const icon = programIcons[program.iconName] || <Sparkles className="w-6 h-6" />;
             return (
               <div
                 key={program.id}
@@ -64,16 +121,20 @@ export default function ProgramsSection({ children }: { children?: React.ReactNo
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <div className={`w-12 h-12 rounded-2xl ${program.badgeColor || "bg-[#F59E0B]"} text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform`}>
+                    <div
+                      className={`w-12 h-12 rounded-2xl ${
+                        program.badgeColor || "bg-[#F59E0B]"
+                      } text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform`}
+                    >
                       {icon}
                     </div>
                     <span className="text-[11px] font-bold text-slate-700 bg-white border border-amber-200 px-2.5 py-1 rounded-full">
-                      {program.ageRange}
+                      {program.badge}
                     </span>
                   </div>
 
                   <span className="text-[11px] font-black uppercase tracking-wider text-amber-700">
-                    {program.tag}
+                    {program.category}
                   </span>
 
                   <h3 className="text-lg sm:text-xl font-black text-slate-900 mt-1 mb-2.5 group-hover:text-[#0284C7] transition-colors leading-snug">
@@ -81,14 +142,14 @@ export default function ProgramsSection({ children }: { children?: React.ReactNo
                   </h3>
 
                   <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mb-4">
-                    {program.shortDesc}
+                    {program.shortDesc || program.description}
                   </p>
                 </div>
 
                 <div className="pt-4 border-t border-amber-200/60 flex items-center justify-between">
                   <button
                     onClick={() => setSelectedProgram(program)}
-                    className="text-xs font-bold text-[#0284C7] hover:underline inline-flex items-center gap-1.5 focus:outline-none"
+                    className="text-xs font-bold text-[#0284C7] hover:underline inline-flex items-center gap-1.5 focus:outline-none cursor-pointer"
                   >
                     <span>Curriculum</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -135,12 +196,16 @@ export default function ProgramsSection({ children }: { children?: React.ReactNo
               </button>
 
               <div className="flex items-center gap-3 mb-4 pr-8">
-                <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl ${selectedProgram.badgeColor} text-white flex items-center justify-center shadow-sm shrink-0`}>
-                  {programIcons[selectedProgram.icon] || <Sparkles className="w-6 h-6" />}
+                <div
+                  className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl ${
+                    selectedProgram.badgeColor || "bg-[#F59E0B]"
+                  } text-white flex items-center justify-center shadow-sm shrink-0`}
+                >
+                  {programIcons[selectedProgram.iconName] || <Sparkles className="w-6 h-6" />}
                 </div>
                 <div>
                   <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-amber-700">
-                    {selectedProgram.tag} • {selectedProgram.ageRange}
+                    {selectedProgram.category} • {selectedProgram.badge}
                   </span>
                   <h3 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
                     {selectedProgram.name}
@@ -152,19 +217,21 @@ export default function ProgramsSection({ children }: { children?: React.ReactNo
                 {selectedProgram.description}
               </p>
 
-              <div className="space-y-3 mb-5 sm:mb-6 bg-amber-50/70 p-3.5 sm:p-4 rounded-2xl border border-amber-200">
-                <h4 className="text-xs font-black uppercase tracking-wider text-slate-800">
-                  Key Focus Areas & Strategies
-                </h4>
-                <ul className="space-y-2">
-                  {selectedProgram.features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-2 text-xs sm:text-sm text-slate-700">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              {selectedProgram.features && selectedProgram.features.length > 0 && (
+                <div className="space-y-3 mb-5 sm:mb-6 bg-amber-50/70 p-3.5 sm:p-4 rounded-2xl border border-amber-200">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-800">
+                    Key Focus Areas & Strategies
+                  </h4>
+                  <ul className="space-y-2">
+                    {selectedProgram.features.map((feature: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2 text-xs sm:text-sm text-slate-700">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3 pt-4 border-t border-slate-100">
                 <button
@@ -185,7 +252,6 @@ export default function ProgramsSection({ children }: { children?: React.ReactNo
             </div>
           </div>
         )}
-
       </div>
     </section>
   );

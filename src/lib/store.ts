@@ -181,17 +181,93 @@ class MongoDataStore {
   }
 
   // Programs
-  async getPrograms(): Promise<ProgramType[]> {
+  async getPrograms(status?: ProgramType["status"] | null, searchQuery?: string): Promise<ProgramType[]> {
     await connectToDatabase();
     await this.ensureCorePrograms();
-    const docs = await Program.find().sort({ createdAt: 1 });
+    let filter: any = {};
+    if (status) {
+      filter.status = status;
+    }
+    if (searchQuery) {
+      const regex = new RegExp(searchQuery.trim(), "i");
+      filter.$or = [
+        { name: regex },
+        { description: regex },
+        { category: regex },
+        { badge: regex },
+        { features: regex }
+      ];
+    }
+    const docs = await Program.find(filter).sort({ createdAt: 1 });
     return docs.map((d) => formatDoc<ProgramType>(d));
+  }
+
+  async getProgramById(id: string): Promise<ProgramType | null> {
+    await connectToDatabase();
+    try {
+      const doc = await Program.findOne(getFilterById(id));
+      return doc ? formatDoc<ProgramType>(doc) : null;
+    } catch {
+      return null;
+    }
   }
 
   async getProgramBySlug(slug: string): Promise<ProgramType | null> {
     await connectToDatabase();
     const doc = await Program.findOne({ slug });
     return doc ? formatDoc<ProgramType>(doc) : null;
+  }
+
+  async createProgram(data: Omit<ProgramType, "id" | "createdAt" | "updatedAt">): Promise<ProgramType> {
+    await connectToDatabase();
+    const cleanSlug = (data.slug || data.name)
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+
+    const doc = await Program.create({
+      name: data.name.trim(),
+      slug: cleanSlug,
+      description: data.description.trim(),
+      category: data.category?.trim() || "Developmental",
+      image: data.image?.trim() || `/images/programs/${cleanSlug}.jpg`,
+      status: data.status || "ACTIVE",
+      badge: data.badge?.trim() || "All Ages",
+      iconName: data.iconName?.trim() || "Sparkles",
+      features: (data.features || []).map((f) => f.trim()).filter(Boolean)
+    });
+    return formatDoc<ProgramType>(doc);
+  }
+
+  async updateProgram(id: string, updates: Partial<ProgramType>): Promise<ProgramType | null> {
+    await connectToDatabase();
+    try {
+      if (updates.slug) {
+        updates.slug = updates.slug
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, "");
+      }
+      if (updates.features) {
+        updates.features = updates.features.map((f) => f.trim()).filter(Boolean);
+      }
+      const doc = await Program.findOneAndUpdate(getFilterById(id), { $set: updates }, { new: true });
+      return doc ? formatDoc<ProgramType>(doc) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async deleteProgram(id: string): Promise<boolean> {
+    await connectToDatabase();
+    try {
+      const res = await Program.deleteOne(getFilterById(id));
+      return res.deletedCount > 0;
+    } catch {
+      return false;
+    }
   }
 
   // Enquiries
