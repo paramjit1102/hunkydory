@@ -303,6 +303,16 @@ class MongoDataStore {
     }
   }
 
+  async deleteEnquiry(id: string): Promise<boolean> {
+    await connectToDatabase();
+    try {
+      const res = await Enquiry.deleteOne(getFilterById(id));
+      return res.deletedCount > 0;
+    } catch {
+      return false;
+    }
+  }
+
   // Appointments
   async getAppointments(status?: AppointmentStatus | null): Promise<AppointmentType[]> {
     await connectToDatabase();

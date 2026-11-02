@@ -93,3 +93,26 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: err.message || "Failed to update enquiry status" }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const auth = await requireAuth(request, ["ADMIN", "SUPERADMIN", "STAFF"]);
+    if (!auth.authorized) return auth.response!;
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ error: "Enquiry ID is required." }, { status: 400 });
+    }
+
+    const deleted = await store.deleteEnquiry(id);
+    if (!deleted) {
+      return NextResponse.json({ error: "Enquiry not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, message: "Enquiry deleted successfully." });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || "Failed to delete enquiry" }, { status: 500 });
+  }
+}
