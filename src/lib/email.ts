@@ -142,7 +142,7 @@ export async function verifySmtpConnection(): Promise<{ success: boolean; messag
   if (!config.isConfigured) {
     return {
       success: false,
-      message: `SMTP is not configured in Vercel environment variables. Missing: ${config.missingKeys.join(", ")}`,
+      message: `SMTP is not configured in server environment variables. Missing: ${config.missingKeys.join(", ")}`,
       details: {
         hostDetected: Boolean(config.host),
         userDetected: Boolean(config.user),
@@ -208,15 +208,15 @@ export async function sendEmail(options: SendEmailOptions): Promise<{ success: b
   if (!transporter) {
     const config = getSmtpConfig();
     console.warn("--------------------------------------------------");
-    console.warn("⚠️ [SMTP NOT CONFIGURED ON VERCEL / SERVER]");
+    console.warn("⚠️ [SMTP NOT CONFIGURED ON SERVER]");
     console.warn(`Missing Environment Variables: ${config.missingKeys.join(", ")}`);
     console.warn(`Simulated To: ${recipients.join(", ")} | Subject: ${options.subject}`);
-    console.warn("Action Required: Add SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS in Vercel Project Settings -> Environment Variables, then Redeploy.");
+    console.warn("Action Required: Add SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS in your environment variables (.env).");
     console.warn("--------------------------------------------------");
     return {
       success: false,
       simulated: true,
-      error: `SMTP not configured on server (Missing: ${config.missingKeys.join(", ")}). Configure in Vercel Settings.`,
+      error: `SMTP not configured on server (Missing: ${config.missingKeys.join(", ")}). Configure in environment variables (.env).`,
       messageId: `mock-${Date.now()}`,
       recipients
     };

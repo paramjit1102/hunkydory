@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       message: message ? String(message).trim() : "Enquiry regarding program placement and support."
     });
 
-    // In Vercel Serverless environment, background promises without await are frozen/terminated.
+    // In serverless environments, background promises without await are frozen/terminated.
     // We await the email notification so the socket completes before the lambda returns.
     let emailStatus = { delivered: false, error: undefined as string | undefined };
     try {

@@ -452,7 +452,7 @@ export default function AdminDashboardPage() {
             {smtpCheckingEnv && !smtpEnvStatus && (
               <div className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-500 mb-4">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>Checking Vercel server environment variables...</span>
+                <span>Checking server environment variables...</span>
               </div>
             )}
 
@@ -469,7 +469,7 @@ export default function AdminDashboardPage() {
                         : "bg-amber-100 text-amber-800"
                     }`}
                   >
-                    {smtpEnvStatus.isConfigured ? "✓ All Keys Detected" : "⚠️ Incomplete in Vercel"}
+                    {smtpEnvStatus.isConfigured ? "✓ All Keys Detected" : "⚠️ Incomplete Configuration"}
                   </span>
                 </div>
 
@@ -496,9 +496,9 @@ export default function AdminDashboardPage() {
 
                 {!smtpEnvStatus.isConfigured && (
                   <div className="mt-2.5 pt-2 border-t border-slate-200 text-[11px] text-amber-800 bg-amber-50/80 p-2 rounded-lg">
-                    <strong>Missing on Vercel:</strong> {smtpEnvStatus.missingKeys?.join(", ")}.
+                    <strong>Missing in Environment:</strong> {smtpEnvStatus.missingKeys?.join(", ")}.
                     <div className="mt-0.5 text-[10px] text-slate-500">
-                      Add them in Vercel Project Settings &gt; Environment Variables, then Redeploy.
+                      Configure them in your server environment variables (.env).
                     </div>
                   </div>
                 )}
