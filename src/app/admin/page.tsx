@@ -22,12 +22,12 @@ import { Enquiry, Appointment, Student } from "@/lib/types";
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState({
-    totalStudents: 4,
-    newEnquiries: 1,
-    upcomingAppointments: 2,
-    activePrograms: 8,
-    totalAssessments: 2,
-    totalReports: 2
+    totalStudents: 0,
+    newEnquiries: 0,
+    upcomingAppointments: 0,
+    activePrograms: 0,
+    totalAssessments: 0,
+    totalReports: 0
   });
   const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);

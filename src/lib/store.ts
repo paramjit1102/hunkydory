@@ -42,22 +42,6 @@ function getFilterById(id: string) {
 }
 
 class MongoDataStore {
-  // Ensure default Admin exists in MongoDB if none present
-  async ensureDefaultAdmin(): Promise<void> {
-    await connectToDatabase();
-    const adminCount = await User.countDocuments({ role: "ADMIN" });
-    if (adminCount === 0) {
-      await User.create({
-        name: "Dr. Sarah Mitchell (Director)",
-        email: "admin@hunkydory.edu",
-        // Default bcrypt hash for "Admin@123456"
-        passwordHash: "$2a$10$9K2z/7Qvh3vE2M0Kx0bY2.n4aD8lV5L7d4J1mF6yA0x8w6P1u4z8S",
-        role: "ADMIN"
-      });
-      console.log("✅ Seeded default Admin user [admin@hunkydory.edu] in MongoDB");
-    }
-  }
-
   // Ensure Core Programs exist in MongoDB if collection is empty
   async ensureCorePrograms(): Promise<void> {
     await connectToDatabase();
@@ -88,7 +72,6 @@ class MongoDataStore {
 
   async getUserByEmail(email: string): Promise<UserType | null> {
     await connectToDatabase();
-    await this.ensureDefaultAdmin();
     const doc = await User.findOne({ email: email.trim().toLowerCase() });
     return doc ? formatDoc<UserType>(doc) : null;
   }

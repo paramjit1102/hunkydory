@@ -20,15 +20,6 @@ export async function hashPassword(plainText: string): Promise<string> {
 }
 
 export async function verifyPassword(plainText: string, hash: string): Promise<boolean> {
-  // Support quick dev matching for demo accounts
-  if (
-    (plainText === "Admin@123456" ||
-      plainText === "Specialist@123" ||
-      plainText === "Staff@123") &&
-    hash.startsWith("$2a$")
-  ) {
-    return true;
-  }
   try {
     return await bcrypt.compare(plainText, hash);
   } catch {
@@ -69,32 +60,7 @@ export function getSessionCookieName(): string {
 
 export async function authenticateUser(email: string, password: string): Promise<User | null> {
   const normalizedEmail = email.trim().toLowerCase();
-  let user = await store.getUserByEmail(normalizedEmail);
-
-  if (!user) {
-    if (normalizedEmail === "specialist@hunkydory.edu") {
-      user = await store.createUser({
-        name: "Priya Sen (Specialist)",
-        email: "specialist@hunkydory.edu",
-        passwordHash: "$2a$10$9K2z/7Qvh3vE2M0Kx0bY2.n4aD8lV5L7d4J1mF6yA0x8w6P1u4z8S",
-        role: "SPECIALIST"
-      });
-    } else if (normalizedEmail === "staff@hunkydory.edu") {
-      user = await store.createUser({
-        name: "Rohan Verma (Staff)",
-        email: "staff@hunkydory.edu",
-        passwordHash: "$2a$10$9K2z/7Qvh3vE2M0Kx0bY2.n4aD8lV5L7d4J1mF6yA0x8w6P1u4z8S",
-        role: "STAFF"
-      });
-    } else if (normalizedEmail === "admin@hunkydory.edu") {
-      user = await store.createUser({
-        name: "Dr. Sarah Mitchell (Director)",
-        email: "admin@hunkydory.edu",
-        passwordHash: "$2a$10$9K2z/7Qvh3vE2M0Kx0bY2.n4aD8lV5L7d4J1mF6yA0x8w6P1u4z8S",
-        role: "ADMIN"
-      });
-    }
-  }
+  const user = await store.getUserByEmail(normalizedEmail);
 
   if (!user) return null;
 

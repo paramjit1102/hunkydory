@@ -1,4 +1,4 @@
-export type Role = "ADMIN" | "SPECIALIST" | "STAFF";
+export type Role = "SUPERADMIN" | "ADMIN" | "SPECIALIST" | "STAFF";
 
 export type EnquiryStatus = "NEW" | "IN_REVIEW" | "CONTACTED" | "ENROLLED" | "CLOSED";
 

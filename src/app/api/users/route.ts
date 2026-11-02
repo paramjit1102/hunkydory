@@ -4,10 +4,10 @@ import { requireAuth } from "@/lib/auth-guard";
 import { hashPassword } from "@/lib/auth";
 import { Role } from "@/lib/types";
 
-// Only ADMIN can view staff user accounts
+// Only SUPERADMIN and ADMIN can view staff user accounts
 export async function GET(request: Request) {
   try {
-    const auth = await requireAuth(request, ["ADMIN"]);
+    const auth = await requireAuth(request, ["ADMIN", "SUPERADMIN"]);
     if (!auth.authorized) return auth.response!;
 
     const rawUsers = await store.getUsers();
@@ -26,10 +26,10 @@ export async function GET(request: Request) {
   }
 }
 
-// Only ADMIN can create/invite new staff or specialists
+// Only SUPERADMIN and ADMIN can create/invite new staff or specialists
 export async function POST(request: Request) {
   try {
-    const auth = await requireAuth(request, ["ADMIN"]);
+    const auth = await requireAuth(request, ["ADMIN", "SUPERADMIN"]);
     if (!auth.authorized) return auth.response!;
 
     const body = await request.json();
@@ -37,12 +37,12 @@ export async function POST(request: Request) {
 
     if (!name || !email || !password || !role) {
       return NextResponse.json(
-        { error: "Name, email, password, and role (ADMIN, SPECIALIST, STAFF) are required." },
+        { error: "Name, email, password, and role (SUPERADMIN, ADMIN, SPECIALIST, STAFF) are required." },
         { status: 400 }
       );
     }
 
-    const validRoles: Role[] = ["ADMIN", "SPECIALIST", "STAFF"];
+    const validRoles: Role[] = ["SUPERADMIN", "ADMIN", "SPECIALIST", "STAFF"];
     if (!validRoles.includes(role)) {
       return NextResponse.json(
         { error: `Invalid role. Must be one of: ${validRoles.join(", ")}` },

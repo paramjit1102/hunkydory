@@ -106,7 +106,7 @@ export default function AdminSidebar({ onClose }: AdminSidebarProps = {}) {
   };
 
   const visibleNavItems = navItems.filter((item) =>
-    item.allowedRoles.includes(userRole)
+    userRole === "SUPERADMIN" || item.allowedRoles.includes(userRole)
   );
 
   return (
@@ -143,7 +143,7 @@ export default function AdminSidebar({ onClose }: AdminSidebarProps = {}) {
         <div className="px-4 pt-4">
           <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
-              {userRole === "ADMIN" ? (
+              {userRole === "SUPERADMIN" || userRole === "ADMIN" ? (
                 <ShieldCheck className="w-4 h-4 text-amber-400" />
               ) : userRole === "SPECIALIST" ? (
                 <Stethoscope className="w-4 h-4 text-emerald-400" />

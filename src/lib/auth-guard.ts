@@ -67,7 +67,7 @@ export async function requireAuth(
   }
 
   if (allowedRoles && allowedRoles.length > 0) {
-    if (!allowedRoles.includes(user.role)) {
+    if (user.role !== "SUPERADMIN" && !allowedRoles.includes(user.role)) {
       return {
         authorized: false,
         user,
