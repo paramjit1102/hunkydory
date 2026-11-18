@@ -5,3 +5,4 @@ export { Enquiry } from "./Enquiry";
 export { Appointment } from "./Appointment";
 export { Assessment } from "./Assessment";
 export { ProgressReport } from "./ProgressReport";
+export { SEOConfigModel } from "./SEOConfig";

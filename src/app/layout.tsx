@@ -13,8 +13,8 @@ export const viewport: Viewport = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  const globalConfig = seoStore.getGlobal();
-  const homePage = seoStore.getPageByPath("/");
+  const globalConfig = await seoStore.getGlobalAsync();
+  const homePage = await seoStore.getPageByPathAsync("/");
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || globalConfig.siteUrl || "http://localhost:3000";
 
   return {
@@ -63,12 +63,12 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const globalConfig = seoStore.getGlobal();
+  const globalConfig = await seoStore.getGlobalAsync();
 
   const jsonLd = {
     "@context": "https://schema.org",

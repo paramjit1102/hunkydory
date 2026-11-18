@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { seoStore } from "@/lib/seo-store";
 import { requireAuth } from "@/lib/auth-guard";
 
@@ -9,7 +10,7 @@ export async function GET(req: NextRequest) {
       return auth.response;
     }
 
-    const data = seoStore.getAll();
+    const data = await seoStore.getAllAsync();
     return NextResponse.json(data);
   } catch (error: any) {
     console.error("❌ Error fetching SEO data:", error);
@@ -30,6 +31,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { action, payload } = body;
 
+    let result: any = null;
+
     switch (action) {
       case "savePage": {
         if (!payload || !payload.path) {
@@ -38,36 +41,42 @@ export async function POST(req: NextRequest) {
             { status: 400 }
           );
         }
-        const saved = seoStore.savePage(payload);
-        return NextResponse.json({ success: true, page: saved });
+        const saved = await seoStore.savePage(payload);
+        result = { success: true, page: saved };
+        break;
       }
 
       case "deletePage": {
         if (!payload?.id) {
           return NextResponse.json({ error: "Missing page id" }, { status: 400 });
         }
-        const ok = seoStore.deletePage(payload.id);
-        return NextResponse.json({ success: ok });
+        const ok = await seoStore.deletePage(payload.id);
+        result = { success: ok };
+        break;
       }
 
       case "updateRobots": {
-        const updated = seoStore.updateRobots(payload);
-        return NextResponse.json({ success: true, robots: updated });
+        const updated = await seoStore.updateRobots(payload);
+        result = { success: true, robots: updated };
+        break;
       }
 
       case "updateSitemap": {
-        const updated = seoStore.updateSitemap(payload);
-        return NextResponse.json({ success: true, sitemap: updated });
+        const updated = await seoStore.updateSitemap(payload);
+        result = { success: true, sitemap: updated };
+        break;
       }
 
       case "updateLLMs": {
-        const updated = seoStore.updateLLMs(payload);
-        return NextResponse.json({ success: true, llms: updated });
+        const updated = await seoStore.updateLLMs(payload);
+        result = { success: true, llms: updated };
+        break;
       }
 
       case "updateGlobal": {
-        const updated = seoStore.updateGlobal(payload);
-        return NextResponse.json({ success: true, global: updated });
+        const updated = await seoStore.updateGlobal(payload);
+        result = { success: true, global: updated };
+        break;
       }
 
       default:
@@ -76,6 +85,15 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
     }
+
+    // Bust Next.js cache site-wide so changes take effect immediately on public pages
+    try {
+      revalidatePath("/", "layout");
+    } catch (cacheErr) {
+      console.warn("⚠️ [SEO API] revalidatePath warning:", cacheErr);
+    }
+
+    return NextResponse.json(result);
   } catch (error: any) {
     console.error("❌ Error updating SEO configuration:", error);
     return NextResponse.json(

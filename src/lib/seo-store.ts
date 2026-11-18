@@ -9,43 +9,114 @@ import {
   GlobalSEOConfig
 } from "./seo-types";
 import defaultSeoJson from "@/data/seo-config.json";
+import { connectToDatabase } from "./mongodb";
+import { SEOConfigModel } from "@/models";
 
 const SEO_FILE_PATH = path.join(process.cwd(), "src", "data", "seo-config.json");
 
 class SEOStore {
   private data: FullSEOData;
+  private lastDbFetchTime: number = 0;
+  private isConnecting: boolean = false;
 
   constructor() {
-    this.data = this.loadData();
+    this.data = this.loadInitialData();
   }
 
-  private loadData(): FullSEOData {
+  private loadInitialData(): FullSEOData {
     try {
       if (fs.existsSync(SEO_FILE_PATH)) {
         const fileContent = fs.readFileSync(SEO_FILE_PATH, "utf-8");
         return JSON.parse(fileContent);
       }
-    } catch (e) {
-      console.warn("⚠️ Failed to load seo-config.json from filesystem, using default data", e);
+    } catch {
+      // Fallback to bundled JSON
     }
     return defaultSeoJson as FullSEOData;
   }
 
-  private persistData(): void {
+  /**
+   * Syncs with MongoDB database to ensure serverless instances share identical state
+   */
+  async ensureDbSynced(force: boolean = false): Promise<FullSEOData> {
+    const now = performance.now();
+    // Cache for 30 seconds (30,000ms) unless explicitly forced
+    if (!force && this.lastDbFetchTime > 0 && now - this.lastDbFetchTime < 30000) {
+      return this.data;
+    }
+
+    if (this.isConnecting) return this.data;
+    this.isConnecting = true;
+
     try {
-      this.data.updatedAt = new Date().toISOString();
+      await connectToDatabase();
+      const record = await SEOConfigModel.findOne({ key: "global_seo" }).lean();
+
+      if (record && record.data) {
+        // Merge DB data with local defaults (in case new code has new fields)
+        const dbData = record.data as FullSEOData;
+        this.data = {
+          ...this.data,
+          ...dbData,
+          global: {
+            ...this.data.global,
+            ...(dbData.global || {})
+          }
+        };
+        this.lastDbFetchTime = now;
+      } else {
+        // First run: seed MongoDB with initial defaults
+        await SEOConfigModel.create({
+          key: "global_seo",
+          data: this.data
+        });
+        this.lastDbFetchTime = now;
+      }
+    } catch (e) {
+      console.warn("⚠️ [SEOStore] MongoDB sync notice (using cached data):", e);
+    } finally {
+      this.isConnecting = false;
+    }
+
+    return this.data;
+  }
+
+  private async persistData(): Promise<void> {
+    this.data.updatedAt = new Date().toISOString();
+    this.lastDbFetchTime = performance.now();
+
+    // 1. Persist to MongoDB
+    try {
+      await connectToDatabase();
+      await SEOConfigModel.findOneAndUpdate(
+        { key: "global_seo" },
+        { $set: { data: this.data } },
+        { upsert: true, returnDocument: "after" }
+      );
+    } catch (e) {
+      console.error("❌ [SEOStore] Failed to persist SEO config to MongoDB:", e);
+    }
+
+    // 2. Persist to local JSON file if filesystem allows (dev / local build)
+    try {
       const dir = path.dirname(SEO_FILE_PATH);
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
       fs.writeFileSync(SEO_FILE_PATH, JSON.stringify(this.data, null, 2), "utf-8");
-    } catch (e) {
-      console.error("❌ Failed to persist seo-config.json:", e);
+    } catch {
+      // In read-only serverless environments (like Vercel), this is expected to fail silently
     }
   }
 
-  // Get full SEO dataset
+  // Get full SEO dataset synchronously
   getAll(): FullSEOData {
+    return this.data;
+  }
+
+  // Get full SEO dataset asynchronously with DB sync
+  async getAllAsync(): Promise<FullSEOData> {
+    await this.ensureDbSynced();
     return this.data;
   }
 
@@ -54,16 +125,28 @@ class SEOStore {
     return this.data.pages;
   }
 
+  async getPagesAsync(): Promise<PageSEO[]> {
+    await this.ensureDbSynced();
+    return this.data.pages;
+  }
+
   getPageByPath(pathname: string): PageSEO | undefined {
     const cleanPath = pathname === "" ? "/" : pathname.split("?")[0];
     return this.data.pages.find((p) => p.path === cleanPath);
+  }
+
+  async getPageByPathAsync(pathname: string): Promise<PageSEO | undefined> {
+    await this.ensureDbSynced();
+    return this.getPageByPath(pathname);
   }
 
   getPageById(id: string): PageSEO | undefined {
     return this.data.pages.find((p) => p.id === id);
   }
 
-  savePage(pageData: Partial<PageSEO> & { path: string }): PageSEO {
+  async savePage(pageData: Partial<PageSEO> & { path: string }): Promise<PageSEO> {
+    await this.ensureDbSynced();
+
     const existingIndex = this.data.pages.findIndex(
       (p) => p.id === pageData.id || p.path === pageData.path
     );
@@ -103,15 +186,16 @@ class SEOStore {
       this.data.pages.push(updatedPage);
     }
 
-    this.persistData();
+    await this.persistData();
     return updatedPage;
   }
 
-  deletePage(id: string): boolean {
+  async deletePage(id: string): Promise<boolean> {
+    await this.ensureDbSynced();
     const initialLength = this.data.pages.length;
     this.data.pages = this.data.pages.filter((p) => p.id !== id);
     if (this.data.pages.length !== initialLength) {
-      this.persistData();
+      await this.persistData();
       return true;
     }
     return false;
@@ -122,12 +206,18 @@ class SEOStore {
     return this.data.robots;
   }
 
-  updateRobots(robots: Partial<RobotsConfig>): RobotsConfig {
+  async getRobotsAsync(): Promise<RobotsConfig> {
+    await this.ensureDbSynced();
+    return this.data.robots;
+  }
+
+  async updateRobots(robots: Partial<RobotsConfig>): Promise<RobotsConfig> {
+    await this.ensureDbSynced();
     this.data.robots = {
       ...this.data.robots,
       ...robots
     };
-    this.persistData();
+    await this.persistData();
     return this.data.robots;
   }
 
@@ -168,12 +258,18 @@ class SEOStore {
     return this.data.sitemap;
   }
 
-  updateSitemap(sitemap: Partial<SitemapConfig>): SitemapConfig {
+  async getSitemapAsync(): Promise<SitemapConfig> {
+    await this.ensureDbSynced();
+    return this.data.sitemap;
+  }
+
+  async updateSitemap(sitemap: Partial<SitemapConfig>): Promise<SitemapConfig> {
+    await this.ensureDbSynced();
     this.data.sitemap = {
       ...this.data.sitemap,
       ...sitemap
     };
-    this.persistData();
+    await this.persistData();
     return this.data.sitemap;
   }
 
@@ -182,12 +278,18 @@ class SEOStore {
     return this.data.llms;
   }
 
-  updateLLMs(llms: Partial<LLMsConfig>): LLMsConfig {
+  async getLLMsAsync(): Promise<LLMsConfig> {
+    await this.ensureDbSynced();
+    return this.data.llms;
+  }
+
+  async updateLLMs(llms: Partial<LLMsConfig>): Promise<LLMsConfig> {
+    await this.ensureDbSynced();
     this.data.llms = {
       ...this.data.llms,
       ...llms
     };
-    this.persistData();
+    await this.persistData();
     return this.data.llms;
   }
 
@@ -196,17 +298,23 @@ class SEOStore {
     return this.data.global;
   }
 
-  updateGlobal(global: Partial<GlobalSEOConfig>): GlobalSEOConfig {
+  async getGlobalAsync(): Promise<GlobalSEOConfig> {
+    await this.ensureDbSynced();
+    return this.data.global;
+  }
+
+  async updateGlobal(global: Partial<GlobalSEOConfig>): Promise<GlobalSEOConfig> {
+    await this.ensureDbSynced();
     this.data.global = {
       ...this.data.global,
       ...global
     };
-    this.persistData();
+    await this.persistData();
     return this.data.global;
   }
 }
 
-// Global singleton
+// Global singleton across hot reloads
 const globalForSeo = globalThis as unknown as { seoStoreInstance?: SEOStore };
 
 export const seoStore = globalForSeo.seoStoreInstance || new SEOStore();
@@ -217,9 +325,9 @@ if (process.env.NODE_ENV !== "production") {
 /**
  * Standard Next.js Metadata generator for pages that consumes SEO store configuration
  */
-export function generatePageMetadata(pathname: string, fallback?: Record<string, any>) {
-  const page = seoStore.getPageByPath(pathname);
-  const globalConfig = seoStore.getGlobal();
+export async function generatePageMetadata(pathname: string, fallback?: Record<string, any>) {
+  const globalConfig = await seoStore.getGlobalAsync();
+  const page = await seoStore.getPageByPathAsync(pathname);
 
   if (!page) {
     return {
