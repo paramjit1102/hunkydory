@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import "./globals.css";
 import { seoStore } from "@/lib/seo-store";
+import { CustomHeaderScripts, CustomFooterScripts } from "@/components/CustomScripts";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -121,6 +122,8 @@ export default function RootLayout({
             `}
           </Script>
         )}
+        {/* Custom Global Header Injections */}
+        <CustomHeaderScripts scripts={globalConfig.headerScripts} />
       </head>
       <body className="min-h-full flex flex-col bg-[#FFFDF9] text-slate-800 antialiased font-sans">
         {/* Skip to Content for Accessibility */}
@@ -133,6 +136,9 @@ export default function RootLayout({
         <div id="main-content" className="flex-1 flex flex-col">
           {children}
         </div>
+
+        {/* Custom Global Footer Injections */}
+        <CustomFooterScripts scripts={globalConfig.footerScripts} />
       </body>
     </html>
   );

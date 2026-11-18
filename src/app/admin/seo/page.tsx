@@ -355,7 +355,7 @@ export default function AdminSEOPage() {
           }`}
         >
           <Settings2 className="w-4 h-4 text-violet-400" />
-          <span>Global SEO & Analytics</span>
+          <span>Global SEO, Tracking & Scripts</span>
         </button>
       </div>
 
@@ -985,9 +985,9 @@ export default function AdminSEOPage() {
         <form onSubmit={handleSaveGlobal} className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
             <div>
-              <h2 className="text-xl font-black text-slate-900">Global Website SEO & Tracking</h2>
+              <h2 className="text-xl font-black text-slate-900">Global Website SEO, Tracking & Code Injections</h2>
               <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                Site-wide metadata templates, Google Search Console, Bing Webmaster tags, and analytics IDs.
+                Site-wide metadata templates, custom header &amp; footer scripts (GTM, Pixel, Chat widgets), webmaster verification tags, and analytics IDs.
               </p>
             </div>
 
@@ -1140,7 +1140,78 @@ export default function AdminSEOPage() {
             </div>
           </div>
 
-          {/* Section 4: Schema.org Organization Info */}
+          {/* Section 4: Global Header & Footer Code Injections */}
+          <div className="space-y-6 pt-6 border-t border-slate-100">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                <Code className="w-4 h-4 text-amber-600" />
+                <span>Custom Global Header &amp; Footer Scripts</span>
+              </h3>
+              <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg w-fit">
+                Injected site-wide across all public pages
+              </span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-xs text-amber-900 space-y-2">
+              <p className="font-bold flex items-center gap-1.5 text-amber-900">
+                <Info className="w-4 h-4 text-amber-700 shrink-0" />
+                <span>How script injection works:</span>
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-slate-700 pl-1 leading-relaxed">
+                <li>
+                  <strong>Header Scripts:</strong> Injected directly into the <code className="bg-amber-100/70 px-1 py-0.5 rounded font-mono text-[11px]">&lt;head&gt;</code> element. Best for Google Tag Manager, Meta / Facebook Pixel, custom CSS <code className="bg-amber-100/70 px-1 py-0.5 rounded font-mono text-[11px]">&lt;style&gt;</code>, or domain verification tags.
+                </li>
+                <li>
+                  <strong>Footer Scripts:</strong> Injected at the bottom right before the closing <code className="bg-amber-100/70 px-1 py-0.5 rounded font-mono text-[11px]">&lt;/body&gt;</code> tag. Best for live chat widgets (Tawk.to, WhatsApp floating buttons), analytics counters, and delayed third-party trackers.
+                </li>
+                <li>
+                  Both full HTML tags (<code className="bg-amber-100/70 px-1 py-0.5 rounded font-mono text-[11px]">&lt;script&gt;...&lt;/script&gt;</code>) and raw JavaScript snippets are automatically parsed and executed.
+                </li>
+              </ul>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6">
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-800">
+                    Global Header Scripts (<code className="text-amber-700 font-mono text-[11px]">&lt;head&gt;</code>)
+                  </label>
+                  <span className="text-[11px] font-mono text-slate-400">
+                    {(globalConfig.headerScripts || "").length} characters
+                  </span>
+                </div>
+                <textarea
+                  rows={8}
+                  value={globalConfig.headerScripts || ""}
+                  onChange={(e) => setGlobalConfig({ ...globalConfig, headerScripts: e.target.value })}
+                  placeholder={`<!-- Google Tag Manager, Meta Pixel, Verification Meta Tags, Custom Styles -->\n<script>\n  // Header script executed in <head>\n</script>`}
+                  className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-emerald-400 font-mono text-xs focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-inner"
+                  spellCheck={false}
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-800">
+                    Global Footer Scripts (<code className="text-amber-700 font-mono text-[11px]">before &lt;/body&gt;</code>)
+                  </label>
+                  <span className="text-[11px] font-mono text-slate-400">
+                    {(globalConfig.footerScripts || "").length} characters
+                  </span>
+                </div>
+                <textarea
+                  rows={8}
+                  value={globalConfig.footerScripts || ""}
+                  onChange={(e) => setGlobalConfig({ ...globalConfig, footerScripts: e.target.value })}
+                  placeholder={`<!-- Live Chat Widget (Tawk.to, WhatsApp), Conversion Counters, Delayed Trackers -->\n<script>\n  // Footer script executed before closing </body>\n</script>`}
+                  className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-emerald-400 font-mono text-xs focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-inner"
+                  spellCheck={false}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 5: Schema.org Organization Info */}
           <div className="space-y-4 pt-6 border-t border-slate-100">
             <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
               <FileText className="w-4 h-4 text-violet-600" />

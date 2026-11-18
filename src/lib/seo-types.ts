@@ -98,6 +98,10 @@ export interface GlobalSEOConfig {
   // Analytics & Tracking
   googleAnalyticsId?: string;
   googleTagManagerId?: string;
+
+  // Custom Global Scripts & Code Injection
+  headerScripts?: string;
+  footerScripts?: string;
   
   // Schema Organization Info
   telephone: string;
