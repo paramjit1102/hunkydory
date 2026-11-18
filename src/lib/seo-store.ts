@@ -17,7 +17,7 @@ const SEO_FILE_PATH = path.join(process.cwd(), "src", "data", "seo-config.json")
 class SEOStore {
   private data: FullSEOData;
   private lastDbFetchTime: number = 0;
-  private isConnecting: boolean = false;
+  private syncPromise: Promise<FullSEOData> | null = null;
 
   constructor() {
     this.data = this.loadInitialData();
@@ -45,40 +45,43 @@ class SEOStore {
       return this.data;
     }
 
-    if (this.isConnecting) return this.data;
-    this.isConnecting = true;
-
-    try {
-      await connectToDatabase();
-      const record = await SEOConfigModel.findOne({ key: "global_seo" }).lean();
-
-      if (record && record.data) {
-        // Merge DB data with local defaults (in case new code has new fields)
-        const dbData = record.data as FullSEOData;
-        this.data = {
-          ...this.data,
-          ...dbData,
-          global: {
-            ...this.data.global,
-            ...(dbData.global || {})
-          }
-        };
-        this.lastDbFetchTime = now;
-      } else {
-        // First run: seed MongoDB with initial defaults
-        await SEOConfigModel.create({
-          key: "global_seo",
-          data: this.data
-        });
-        this.lastDbFetchTime = now;
-      }
-    } catch (e) {
-      console.warn("⚠️ [SEOStore] MongoDB sync notice (using cached data):", e);
-    } finally {
-      this.isConnecting = false;
+    if (this.syncPromise) {
+      return this.syncPromise;
     }
 
-    return this.data;
+    this.syncPromise = (async () => {
+      try {
+        await connectToDatabase();
+        const record = await SEOConfigModel.findOne({ key: "global_seo" }).lean();
+
+        if (record && record.data) {
+          const dbData = record.data as FullSEOData;
+          this.data = {
+            ...this.data,
+            ...dbData,
+            global: {
+              ...this.data.global,
+              ...(dbData.global || {})
+            }
+          };
+          this.lastDbFetchTime = performance.now();
+        } else {
+          // First run: seed MongoDB with initial defaults
+          await SEOConfigModel.create({
+            key: "global_seo",
+            data: this.data
+          });
+          this.lastDbFetchTime = performance.now();
+        }
+      } catch (e) {
+        console.warn("⚠️ [SEOStore] MongoDB sync notice (using cached data):", e);
+      } finally {
+        this.syncPromise = null;
+      }
+      return this.data;
+    })();
+
+    return this.syncPromise;
   }
 
   private async persistData(): Promise<void> {

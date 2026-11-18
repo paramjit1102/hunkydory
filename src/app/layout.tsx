@@ -4,6 +4,8 @@ import "./globals.css";
 import { seoStore } from "@/lib/seo-store";
 import { CustomHeaderScripts, CustomFooterScripts } from "@/components/CustomScripts";
 
+export const revalidate = 0;
+
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
